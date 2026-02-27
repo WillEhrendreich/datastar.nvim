@@ -63,7 +63,7 @@ Run `:DatastarSignalGraph` to visualize how computed signals depend on each othe
 
 ```lua
 {
-  "delaneyj/datastar-lsp.nvim",
+  "WillEhrendreich/datastar-lsp.nvim",
   ft = "html",
   opts = {},
 }
@@ -73,7 +73,7 @@ Run `:DatastarSignalGraph` to visualize how computed signals depend on each othe
 
 ```lua
 use {
-  "delaneyj/datastar-lsp.nvim",
+  "WillEhrendreich/datastar-lsp.nvim",
   config = function()
     require("datastar").setup()
   end,

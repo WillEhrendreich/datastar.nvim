@@ -29,7 +29,7 @@ Optional (for enhanced completions):
 
 ```lua
 {
-  "delaneyj/datastar-lsp.nvim",
+  "WillEhrendreich/datastar-lsp.nvim",
   ft = "html",
   opts = {},
 }
@@ -41,7 +41,7 @@ That's it. The plugin activates automatically for HTML files.
 
 ```lua
 use {
-  "delaneyj/datastar-lsp.nvim",
+  "WillEhrendreich/datastar-lsp.nvim",
   config = function()
     require("datastar").setup()
   end,
@@ -54,7 +54,7 @@ use {
 Clone to your Neovim packages directory:
 
 ```bash
-git clone https://github.com/delaneyj/datastar-lsp.nvim \
+git clone https://github.com/WillEhrendreich/datastar-lsp.nvim \
   ~/.local/share/nvim/site/pack/plugins/start/datastar-lsp.nvim
 ```
 

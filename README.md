@@ -41,7 +41,7 @@ Catch mistakes as you type — duplicate modifiers, conflicting options, unclose
 
 Type `evt.` inside a `data-on` handler and get completions specific to that event type. `keydown` shows `KeyboardEvent` properties, `click` shows `MouseEvent` properties.
 
-<img src="demo/event-narrowing.png" width="700" alt="Event type narrowing showing KeyboardEvent properties for data-on:keydown">
+<img src="demo/event-narrowing.gif" width="700" alt="Event type narrowing showing KeyboardEvent properties for data-on:keydown">
 
 ### Signal Goto Definition
 

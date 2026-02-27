@@ -23,19 +23,19 @@ Completions · Hover Docs · Diagnostics · Signal Navigation · Dependency Grap
 
 Type `data-` and get context-aware completions for all 31 Datastar plugins, with descriptions and docs links.
 
-<img src="demo/completions.png" width="700" alt="Attribute completions showing data-signals, data-on, data-bind and more">
+<img src="demo/completions.gif" width="700" alt="Attribute completions showing data-signals, data-on, data-bind and more">
 
 ### Rich Hover Documentation
 
 Press `K` on any `data-*` attribute to see descriptions, available modifiers, and curated code examples.
 
-<img src="demo/hover.png" width="700" alt="Hover popup showing data-on documentation with modifiers and examples">
+<img src="demo/hover.gif" width="700" alt="Hover popup showing data-on documentation with modifiers and examples">
 
 ### Real-Time Diagnostics
 
 Catch mistakes as you type — duplicate modifiers, conflicting options, unclosed expressions, and more.
 
-<img src="demo/diagnostics.png" width="700" alt="Diagnostics showing duplicate modifier, conflicting modifiers, and unclosed expression errors">
+<img src="demo/diagnostics.gif" width="700" alt="Diagnostics showing duplicate modifier, conflicting modifiers, and unclosed expression errors">
 
 ### Event Type Narrowing
 
@@ -47,13 +47,13 @@ Type `evt.` inside a `data-on` handler and get completions specific to that even
 
 Press `gd` on any `$signal` reference to jump to where it was defined.
 
-<img src="demo/goto-definition.png" width="700" alt="Goto definition jumping from $userName usage to its data-signals definition">
+<img src="demo/goto-definition.gif" width="700" alt="Goto definition jumping from $userName usage to its data-signals definition">
 
 ### Signal Dependency Graph
 
 Run `:DatastarSignalGraph` to visualize how computed signals depend on each other.
 
-<img src="demo/signal-graph.png" width="700" alt="Signal dependency graph showing computed signals and their dependencies">
+<img src="demo/signal-graph.gif" width="700" alt="Signal dependency graph showing computed signals and their dependencies">
 
 ---
 

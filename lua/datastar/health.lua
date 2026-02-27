@@ -62,6 +62,25 @@ function M.check()
   if not has_cmp and not has_blink then
     vim.health.info("No completion engine detected — native omnifunc will be used")
   end
+
+  -- Check additional modules
+  local modules = {
+    { "datastar.diagnostics", "Diagnostics engine" },
+    { "datastar.textobjects", "Textobjects" },
+    { "datastar.workspace", "Cross-file signal tracking" },
+    { "datastar.routes", "Route goto definition" },
+    { "datastar.examples", "Curated examples" },
+    { "datastar.depgraph", "Signal dependency graph" },
+    { "datastar.versions", "Version-aware feature gating" },
+  }
+  for _, mod_info in ipairs(modules) do
+    local mod_ok = pcall(require, mod_info[1])
+    if mod_ok then
+      vim.health.ok(mod_info[2] .. " loaded")
+    else
+      vim.health.warn(mod_info[2] .. " failed to load")
+    end
+  end
 end
 
 return M

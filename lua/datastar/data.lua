@@ -585,6 +585,214 @@ for _, ft in ipairs(M.filetypes) do
   M.filetypes_set[ft] = true
 end
 
+-- Event → EventInterface mapping for type narrowing
+M.event_interfaces = {
+  -- MouseEvent
+  click = "MouseEvent", dblclick = "MouseEvent", mousedown = "MouseEvent",
+  mouseup = "MouseEvent", mousemove = "MouseEvent", mouseover = "MouseEvent",
+  mouseout = "MouseEvent", mouseenter = "MouseEvent", mouseleave = "MouseEvent",
+  contextmenu = "MouseEvent",
+  -- KeyboardEvent
+  keydown = "KeyboardEvent", keyup = "KeyboardEvent", keypress = "KeyboardEvent",
+  -- FocusEvent
+  focus = "FocusEvent", blur = "FocusEvent", focusin = "FocusEvent", focusout = "FocusEvent",
+  -- InputEvent
+  input = "InputEvent",
+  -- WheelEvent
+  wheel = "WheelEvent",
+  -- TouchEvent
+  touchstart = "TouchEvent", touchend = "TouchEvent", touchmove = "TouchEvent",
+  touchcancel = "TouchEvent",
+  -- DragEvent
+  drag = "DragEvent", dragstart = "DragEvent", dragend = "DragEvent",
+  dragenter = "DragEvent", dragleave = "DragEvent", dragover = "DragEvent", drop = "DragEvent",
+  -- AnimationEvent
+  animationstart = "AnimationEvent", animationend = "AnimationEvent",
+  animationiteration = "AnimationEvent",
+  -- TransitionEvent
+  transitionend = "TransitionEvent",
+  -- SubmitEvent
+  submit = "SubmitEvent",
+  -- PointerEvent (extends MouseEvent)
+  pointerdown = "PointerEvent", pointerup = "PointerEvent",
+  pointermove = "PointerEvent", pointerover = "PointerEvent",
+  pointerout = "PointerEvent", pointerenter = "PointerEvent",
+  pointerleave = "PointerEvent", pointercancel = "PointerEvent",
+  -- ClipboardEvent
+  copy = "ClipboardEvent", cut = "ClipboardEvent", paste = "ClipboardEvent",
+  -- HashChangeEvent
+  hashchange = "HashChangeEvent",
+  -- PageTransitionEvent
+  pagehide = "PageTransitionEvent", pageshow = "PageTransitionEvent",
+  -- ProgressEvent
+  progress = "ProgressEvent", loadstart = "ProgressEvent",
+}
+
+-- EventInterface → properties (name + description)
+M.event_properties = {
+  Event = {
+    { name = "type", desc = "string — The name of the event" },
+    { name = "target", desc = "EventTarget — The element that triggered the event" },
+    { name = "currentTarget", desc = "EventTarget — The element the listener is attached to" },
+    { name = "bubbles", desc = "boolean — Whether the event bubbles" },
+    { name = "cancelable", desc = "boolean — Whether the event can be cancelled" },
+    { name = "defaultPrevented", desc = "boolean — Whether preventDefault() was called" },
+    { name = "timeStamp", desc = "number — Time the event was created (ms)" },
+    { name = "isTrusted", desc = "boolean — Whether the event was initiated by the browser" },
+    { name = "preventDefault", desc = "() => void — Cancels the event if cancelable" },
+    { name = "stopPropagation", desc = "() => void — Stops event propagation" },
+    { name = "stopImmediatePropagation", desc = "() => void — Stops all listeners" },
+  },
+  MouseEvent = {
+    { name = "clientX", desc = "number — X coordinate relative to viewport" },
+    { name = "clientY", desc = "number — Y coordinate relative to viewport" },
+    { name = "pageX", desc = "number — X coordinate relative to document" },
+    { name = "pageY", desc = "number — Y coordinate relative to document" },
+    { name = "screenX", desc = "number — X coordinate relative to screen" },
+    { name = "screenY", desc = "number — Y coordinate relative to screen" },
+    { name = "offsetX", desc = "number — X coordinate relative to target" },
+    { name = "offsetY", desc = "number — Y coordinate relative to target" },
+    { name = "button", desc = "number — Which button was pressed (0=left, 1=middle, 2=right)" },
+    { name = "buttons", desc = "number — Bitmask of currently pressed buttons" },
+    { name = "altKey", desc = "boolean — Whether Alt key was pressed" },
+    { name = "ctrlKey", desc = "boolean — Whether Ctrl key was pressed" },
+    { name = "metaKey", desc = "boolean — Whether Meta/Cmd key was pressed" },
+    { name = "shiftKey", desc = "boolean — Whether Shift key was pressed" },
+    { name = "relatedTarget", desc = "EventTarget|null — Related target for mouse events" },
+  },
+  KeyboardEvent = {
+    { name = "key", desc = "string — The key value ('Enter', 'a', 'ArrowUp')" },
+    { name = "code", desc = "string — The physical key code ('KeyA', 'Enter')" },
+    { name = "altKey", desc = "boolean — Whether Alt key was pressed" },
+    { name = "ctrlKey", desc = "boolean — Whether Ctrl key was pressed" },
+    { name = "metaKey", desc = "boolean — Whether Meta/Cmd key was pressed" },
+    { name = "shiftKey", desc = "boolean — Whether Shift key was pressed" },
+    { name = "repeat", desc = "boolean — Whether key is being held down" },
+    { name = "location", desc = "number — Location of the key (0=standard, 1=left, 2=right)" },
+    { name = "isComposing", desc = "boolean — Whether in IME composition" },
+  },
+  FocusEvent = {
+    { name = "relatedTarget", desc = "EventTarget|null — The element losing/gaining focus" },
+  },
+  InputEvent = {
+    { name = "data", desc = "string|null — The inserted characters" },
+    { name = "inputType", desc = "string — Type of input ('insertText', 'deleteContentBackward')" },
+    { name = "isComposing", desc = "boolean — Whether in IME composition" },
+  },
+  WheelEvent = {
+    { name = "deltaX", desc = "number — Horizontal scroll amount" },
+    { name = "deltaY", desc = "number — Vertical scroll amount" },
+    { name = "deltaZ", desc = "number — Z-axis scroll amount" },
+    { name = "deltaMode", desc = "number — Unit of delta (0=pixel, 1=line, 2=page)" },
+  },
+  TouchEvent = {
+    { name = "touches", desc = "TouchList — All current touches" },
+    { name = "targetTouches", desc = "TouchList — Touches on target element" },
+    { name = "changedTouches", desc = "TouchList — Touches that changed" },
+    { name = "altKey", desc = "boolean — Whether Alt key was pressed" },
+    { name = "ctrlKey", desc = "boolean — Whether Ctrl key was pressed" },
+    { name = "metaKey", desc = "boolean — Whether Meta/Cmd key was pressed" },
+    { name = "shiftKey", desc = "boolean — Whether Shift key was pressed" },
+  },
+  DragEvent = {
+    { name = "dataTransfer", desc = "DataTransfer — The drag data" },
+  },
+  AnimationEvent = {
+    { name = "animationName", desc = "string — Name of the CSS animation" },
+    { name = "elapsedTime", desc = "number — Time the animation has run (seconds)" },
+    { name = "pseudoElement", desc = "string — The pseudo-element the animation runs on" },
+  },
+  TransitionEvent = {
+    { name = "propertyName", desc = "string — CSS property that transitioned" },
+    { name = "elapsedTime", desc = "number — Time the transition has run (seconds)" },
+    { name = "pseudoElement", desc = "string — The pseudo-element the transition runs on" },
+  },
+  SubmitEvent = {
+    { name = "submitter", desc = "HTMLElement|null — The element that triggered the submit" },
+  },
+  PointerEvent = {
+    { name = "pointerId", desc = "number — Unique identifier for the pointer" },
+    { name = "width", desc = "number — Width of the pointer contact" },
+    { name = "height", desc = "number — Height of the pointer contact" },
+    { name = "pressure", desc = "number — Pressure of the pointer (0-1)" },
+    { name = "pointerType", desc = "string — Type of pointer ('mouse', 'pen', 'touch')" },
+    { name = "isPrimary", desc = "boolean — Whether this is the primary pointer" },
+  },
+  ClipboardEvent = {
+    { name = "clipboardData", desc = "DataTransfer — The clipboard data" },
+  },
+  HashChangeEvent = {
+    { name = "oldURL", desc = "string — The previous URL" },
+    { name = "newURL", desc = "string — The new URL" },
+  },
+  PageTransitionEvent = {
+    { name = "persisted", desc = "boolean — Whether the page was loaded from cache" },
+  },
+  ProgressEvent = {
+    { name = "lengthComputable", desc = "boolean — Whether total size is known" },
+    { name = "loaded", desc = "number — Amount loaded" },
+    { name = "total", desc = "number — Total amount to load" },
+  },
+}
+
+-- Inheritance chain for event interfaces
+M.event_interface_parents = {
+  MouseEvent = "Event",
+  KeyboardEvent = "Event",
+  FocusEvent = "Event",
+  InputEvent = "Event",
+  WheelEvent = "MouseEvent",
+  TouchEvent = "Event",
+  DragEvent = "MouseEvent",
+  AnimationEvent = "Event",
+  TransitionEvent = "Event",
+  SubmitEvent = "Event",
+  PointerEvent = "MouseEvent",
+  ClipboardEvent = "Event",
+  HashChangeEvent = "Event",
+  PageTransitionEvent = "Event",
+  ProgressEvent = "Event",
+}
+
+--- Get all properties for an event interface, including inherited ones.
+--- @param interface_name string
+--- @return table[] properties { name, desc }
+function M.get_event_properties(interface_name)
+  local result = {}
+  local seen = {}
+
+  -- Walk the inheritance chain
+  local current = interface_name
+  while current do
+    local props = M.event_properties[current]
+    if props then
+      for _, p in ipairs(props) do
+        if not seen[p.name] then
+          seen[p.name] = true
+          result[#result + 1] = p
+        end
+      end
+    end
+    current = M.event_interface_parents[current]
+  end
+
+  -- Always include base Event if not already covered
+  if not M.event_interface_parents[interface_name] and interface_name ~= "Event" then
+    local base = M.event_properties["Event"]
+    if base then
+      for _, p in ipairs(base) do
+        if not seen[p.name] then
+          seen[p.name] = true
+          result[#result + 1] = p
+        end
+      end
+    end
+  end
+
+  table.sort(result, function(a, b) return a.name < b.name end)
+  return result
+end
+
 -- Helper: get all plugin names as a sorted list
 function M.plugin_names()
   local names = {}

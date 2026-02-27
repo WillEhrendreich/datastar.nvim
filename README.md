@@ -1,19 +1,41 @@
 # datastar-lsp.nvim
 
-IDE-quality [Datastar](https://data-star.dev) completions, hover docs, and syntax highlighting for Neovim.
+IDE-quality [Datastar](https://data-star.dev) completions, hover docs, diagnostics, and developer tools for Neovim.
 
 ## Features
 
-- **Completions** for all 31 Datastar attribute plugins (`data-on`, `data-signals`, `data-show`, etc.)
+### Completions
+- **Attribute plugins** — all 31 Datastar plugins (`data-on`, `data-signals`, `data-show`, etc.)
 - **Key completions** — DOM events for `data-on:`, HTML attributes for `data-attr:`, etc.
 - **Modifier completions** — `__debounce`, `__once`, `__capture` with valid args
-- **Action completions** — `@get()`, `@post()`, `@peek()`, etc. inside attribute values with fetch option docs
+- **Action completions** — `@get()`, `@post()`, `@peek()`, etc. with fetch option docs
 - **Signal completions** — `$signalName` suggestions scanned from the current buffer
+- **Event type narrowing** — `evt.` completions narrowed by event type (e.g., `evt.key` for `keydown`, `evt.clientX` for `click`)
 - **Snippet expansion** — complete attributes expand to full snippet templates
-- **Hover documentation** — cursor-precise description + modifiers + link to official docs
+
+### Diagnostics
+- **Modifier chain validation** — duplicate, conflicting, and invalid modifier detection
+- **Expression syntax validation** — unbalanced delimiters, unterminated strings, empty expressions
+- **Real-time inline diagnostics** via `vim.diagnostic`
+
+### Navigation
+- **Signal goto definition** — `gd` on `$signalName` jumps to defining `data-signals` attribute
+- **Route goto definition** — jump from `@get('/api/users')` to matching route handler (Go, F#, Express, ASP.NET, Flask)
+- **Cross-file signal tracking** — workspace-wide signal index for multi-file projects
+
+### Documentation
+- **Hover docs** — cursor-precise description + modifiers + link to official docs
+- **Curated examples** — real-world code snippets in hover for each plugin and modifier
 - **Treesitter highlighting** — semantic coloring for `data-*` attributes
+
+### Developer Tools
+- **Signal dependency graph** — `:DatastarSignalGraph` visualizes computed signal dependencies
+- **Textobjects** — `im`/`am` for modifiers, `ik`/`ak` for keys, modifier navigation
+- **Version-aware feature gating** — detects Datastar version and filters completions accordingly
+
+### Integration
 - **Zero-config** — works with native omnifunc out of the box
-- **Completion engine support** — nvim-cmp, blink.cmp, and native omnifunc
+- **Completion engines** — nvim-cmp, blink.cmp, and native omnifunc
 
 ## Installation
 
@@ -42,12 +64,12 @@ use {
 
 ```lua
 require("datastar").setup({
-  -- Override filetypes (default: html, htmldjango, php, templ, vue, svelte, astro, ...)
-  filetypes = nil,
-  -- Enable completion (default: true)
-  completion = true,
-  -- Enable hover docs (default: true)
-  hover = true,
+  filetypes = nil,      -- Override filetypes (default: html, htmldjango, php, templ, vue, svelte, astro, ...)
+  completion = true,    -- Enable completion
+  hover = true,         -- Enable hover docs (<leader>dh)
+  diagnostics = true,   -- Enable inline diagnostics
+  goto_definition = true, -- Enable gd on $signals
+  signal_graph = true,  -- Enable :DatastarSignalGraph command
 })
 ```
 
@@ -106,6 +128,34 @@ data-[plugin]:[key]__[modifier].[arg]="expression"
 | Modifier | `__` | `data-on:click__debounce` |
 | Modifier arg | `.` | `data-on:click__debounce.500ms` |
 | Value | `="..."` | `data-on:click="@get('/api')"` |
+
+## Signal Dependency Graph
+
+```vim
+:DatastarSignalGraph
+```
+
+Opens a split showing signal dependencies (which computed signals depend on which base signals).
+
+## Textobjects
+
+The plugin provides functions for structural editing of modifier chains:
+
+```lua
+local to = require("datastar.textobjects")
+
+-- In your config:
+vim.keymap.set({"x", "o"}, "im", function()
+  local line = vim.api.nvim_get_current_line()
+  local col = vim.api.nvim_win_get_cursor(0)[2]
+  local mod = to.find_modifier_at_col(line, col)
+  if mod then
+    vim.api.nvim_win_set_cursor(0, { vim.fn.line("."), mod.start_col })
+    vim.cmd("normal! v")
+    vim.api.nvim_win_set_cursor(0, { vim.fn.line("."), mod.end_col - 1 })
+  end
+end, { desc = "inner modifier" })
+```
 
 ## Health Check
 

@@ -30,11 +30,17 @@ function M.detect_context(line, col)
   do
     local last_plugin = nil
     local last_value = nil
+    local last_key = nil
     local i = 1
     while i <= #text do
       -- Look for data- attribute start
       local ds, de, pname = text:find("data%-([%w%-]+)", i)
       if not ds then break end
+      -- Extract key if present (data-on:click → key="click")
+      local attr_key = nil
+      local after_plugin = text:sub(de + 1)
+      local key_match = after_plugin:match("^:([%w%-]+)")
+      if key_match then attr_key = key_match end
       -- Skip past the attribute name + key + modifiers to find =
       local eq_pos = text:find("=", de + 1)
       if eq_pos then
@@ -57,6 +63,7 @@ function M.detect_context(line, col)
               -- We're inside this value — cursor is between open_quote and end
               last_plugin = pname:match("^([%w%-]+)")
               last_value = text:sub(val_start)
+              last_key = attr_key
               i = #text + 1
             end
           else
@@ -70,11 +77,15 @@ function M.detect_context(line, col)
       end
     end
     if last_plugin then
-      return {
+      local result = {
         kind = "VALUE",
         plugin = last_plugin,
         partial = last_value or "",
       }
+      if last_key then
+        result.event_key = last_key
+      end
+      return result
     end
   end
 
@@ -289,6 +300,30 @@ function M._resolve_value(ctx)
   local items = {}
   local partial = (ctx.partial or "")
 
+  -- Event property completions (evt. prefix) — type-narrowed based on event key
+  if partial:find("^evt%.") then
+    local prop_partial = partial:sub(5):lower() -- after "evt."
+    local event_key = ctx.event_key
+    local interface_name = "Event"
+    if event_key and data.event_interfaces then
+      interface_name = data.event_interfaces[event_key] or "Event"
+    end
+    local props = data.get_event_properties(interface_name)
+    for _, prop in ipairs(props) do
+      if prop_partial == "" or prop.name:lower():find(prop_partial, 1, true) then
+        items[#items + 1] = {
+          label = "evt." .. prop.name,
+          kind = Kind.Property,
+          detail = prop.desc,
+          filterText = "evt." .. prop.name,
+          sortText = "evt." .. prop.name,
+        }
+      end
+    end
+    table.sort(items, function(a, b) return a.label < b.label end)
+    return items
+  end
+
   -- Action completions (@ prefix)
   if partial == "" or partial:sub(1, 1) == "@" then
     local action_partial = partial:sub(2):lower()
@@ -347,34 +382,79 @@ end
 --- @param lines string[] buffer lines
 --- @return string[] signal names
 function M.scan_signals(lines)
+  local locs = M.scan_signals_with_locations(lines)
+  local names = {}
+  for _, loc in ipairs(locs) do
+    names[#names + 1] = loc.name
+  end
+  return names
+end
+
+--- Scan buffer lines for signal-creating attributes with location info.
+--- @param lines string[] buffer lines
+--- @return table[] signals { name, lnum (0-based), col (0-based) }
+function M.scan_signals_with_locations(lines)
   local seen = {}
   local signals = {}
 
-  -- Signal-creating plugins: signals, bind, ref, computed, indicator
   local signal_plugins = { signals = true, bind = true, ref = true, computed = true, indicator = true }
 
-  for _, line in ipairs(lines) do
+  for i, line in ipairs(lines) do
+    local lnum = i - 1 -- 0-based
     -- Match data-PLUGIN:KEY form (colon-keyed signals)
-    for plugin, key in line:gmatch("data%-(%w+):([%w%-_]+)") do
+    local search_start = 1
+    while true do
+      local ds, de, plugin, key = line:find("data%-(%w+):([%w%-_]+)", search_start)
+      if not ds then break end
       if signal_plugins[plugin] and not seen[key] then
         seen[key] = true
-        signals[#signals + 1] = key
+        signals[#signals + 1] = {
+          name = key,
+          lnum = lnum,
+          col = ds - 1, -- 0-based
+        }
       end
+      search_start = de + 1
     end
     -- Match object-form data-signals='{ key: val, key2: val2 }'
     local obj_body = line:match('data%-signals%s*=%s*["\']%s*{(.-)%s*}')
     if obj_body then
+      local obj_start = line:find('data%-signals')
       for key in obj_body:gmatch("([%w_]+)%s*:") do
         if not seen[key] then
           seen[key] = true
-          signals[#signals + 1] = key
+          signals[#signals + 1] = {
+            name = key,
+            lnum = lnum,
+            col = (obj_start or 1) - 1,
+          }
         end
       end
     end
   end
 
-  table.sort(signals)
+  table.sort(signals, function(a, b) return a.name < b.name end)
   return signals
+end
+
+--- Find a $signal reference under the cursor position.
+--- @param line string the full line text
+--- @param col number 0-based cursor column
+--- @return string|nil signal name (without $ prefix)
+function M.find_signal_at_cursor(line, col)
+  -- Find all $signalName or $$signalName references on the line
+  local pos = 1
+  while true do
+    local ds, de, name = line:find("%$%$?([%w_]+)", pos)
+    if not ds then break end
+    -- ds is start of first $, de is end of name
+    local cursor_1 = col + 1
+    if cursor_1 >= ds and cursor_1 <= de then
+      return name
+    end
+    pos = de + 1
+  end
+  return nil
 end
 
 --- Find the Datastar plugin name under the cursor position.

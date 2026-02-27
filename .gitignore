@@ -1,2 +1,9 @@
 expertPanel/
 test-drive.html
+demo/node_modules/
+demo/package.json
+demo/package-lock.json
+demo/screenshot.js
+demo/*.html
+demo/theme.css
+demo/mockups.html

@@ -37,19 +37,22 @@ function M.scan_file_for_signals(content, filepath)
     lines[#lines + 1] = line
   end
 
+  local def_plugins = { "signals", "bind", "ref", "computed", "indicator" }
   for lnum, line in ipairs(lines) do
-    -- data-signals:KEY="value" → definition
-    for key in line:gmatch("data%-signals:([%w%-]+)") do
-      if not seen[key] then
-        seen[key] = true
-        local col = line:find("data%-signals:" .. key, 1, true) or 0
-        signals[#signals + 1] = {
-          name = key,
-          file = filepath,
-          lnum = lnum,
-          col = col - 1,
-          kind = "definition",
-        }
+    -- data-{plugin}:KEY="value" → definition (for all signal-defining plugins)
+    for _, plugin in ipairs(def_plugins) do
+      for key in line:gmatch("data%-" .. plugin .. ":([%w%-]+)") do
+        if not seen[key] then
+          seen[key] = true
+          local col = line:find("data%-" .. plugin .. ":" .. key, 1, true) or 0
+          signals[#signals + 1] = {
+            name = key,
+            file = filepath,
+            lnum = lnum,
+            col = col - 1,
+            kind = "definition",
+          }
+        end
       end
     end
 

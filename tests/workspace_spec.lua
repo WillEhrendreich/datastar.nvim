@@ -77,6 +77,44 @@ describe("datastar.workspace", function()
       assert.are_equal(1, #result)
       assert.are_equal(2, result[1].lnum)
     end)
+
+    it("finds data-computed signals as definitions", function()
+      local content = [[
+<div data-signals:firstName="'John'"></div>
+<div data-signals:lastName="'Doe'"></div>
+<div data-computed:fullName="$firstName + ' ' + $lastName"></div>
+]]
+      local result = workspace.scan_file_for_signals(content, "test.html")
+      local by_name = {}
+      for _, sig in ipairs(result) do
+        by_name[sig.name] = sig
+      end
+      assert.is_not_nil(by_name["fullName"])
+      assert.are_equal("definition", by_name["fullName"].kind)
+    end)
+
+    it("finds data-bind signals as definitions", function()
+      local content = [[<input data-bind:value="$userName" />]]
+      local result = workspace.scan_file_for_signals(content, "test.html")
+      local by_name = {}
+      for _, sig in ipairs(result) do
+        by_name[sig.name] = sig
+      end
+      -- "value" from data-bind:value is a definition
+      assert.is_not_nil(by_name["value"])
+      assert.are_equal("definition", by_name["value"].kind)
+    end)
+
+    it("finds data-ref signals as definitions", function()
+      local content = [[<div data-ref:myDiv></div>]]
+      local result = workspace.scan_file_for_signals(content, "test.html")
+      local by_name = {}
+      for _, sig in ipairs(result) do
+        by_name[sig.name] = sig
+      end
+      assert.is_not_nil(by_name["myDiv"])
+      assert.are_equal("definition", by_name["myDiv"].kind)
+    end)
   end)
 
   describe("signal_store", function()

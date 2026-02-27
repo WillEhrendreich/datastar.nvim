@@ -43,7 +43,9 @@ function M.omnifunc(findstart, base)
   else
     local line = vim.api.nvim_get_current_line()
     local col = vim.api.nvim_win_get_cursor(0)[2]
-    return completion.omnifunc_items(line, col, base)
+    local buf_lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+    local signals = completion.scan_signals(buf_lines)
+    return completion.omnifunc_items(line, col, base, signals)
   end
 end
 
@@ -110,7 +112,7 @@ function M.goto_definition()
 
   for _, loc in ipairs(locs) do
     if loc.name == signal_name then
-      vim.api.nvim_win_set_cursor(0, { loc.lnum, loc.col })
+      vim.api.nvim_win_set_cursor(0, { loc.lnum + 1, loc.col })
       return
     end
   end
@@ -212,12 +214,19 @@ function M.setup(opts)
   -- blink.cmp uses a provider-based config; no runtime registration needed.
   -- Users add the source to their blink.cmp provider config. See README.
 
-  -- Register diagnostics autocmd
+  -- Register diagnostics via FileType (TextChanged/InsertLeave don't match filetype patterns)
   if opts.diagnostics then
-    vim.api.nvim_create_autocmd({ "TextChanged", "InsertLeave", "BufEnter" }, {
+    vim.api.nvim_create_autocmd("FileType", {
       pattern = ft_list,
       group = vim.api.nvim_create_augroup("DatastarDiagnostics", { clear = true }),
-      callback = function()
+      callback = function(ev)
+        vim.api.nvim_create_autocmd({ "TextChanged", "InsertLeave", "BufEnter" }, {
+          buffer = ev.buf,
+          callback = function()
+            M.run_diagnostics()
+          end,
+        })
+        -- Run immediately on filetype detection
         M.run_diagnostics()
       end,
     })
@@ -250,6 +259,8 @@ function M.setup(opts)
       M.signal_graph()
     end, { desc = "Show Datastar signal dependency graph" })
   end
+
+  M._configured = true
 end
 
 return M

@@ -489,9 +489,14 @@ end
 --- @param col number cursor column (1-based, end of typed text)
 --- @param base string|nil optional filter text for the completion items
 --- @return table[] items suitable for complete()
-function M.omnifunc_items(line, col, base)
+function M.omnifunc_items(line, col, base, signals)
   local ctx = M.detect_context(line, col)
   if not ctx then return {} end
+
+  -- Inject signals into VALUE context for $signal completions
+  if ctx.kind == "VALUE" and signals then
+    ctx.signals = signals
+  end
 
   local lsp_items = M.resolve(ctx)
   local results = {}

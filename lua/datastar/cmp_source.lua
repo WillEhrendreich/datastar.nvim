@@ -42,6 +42,12 @@ function source:complete(params, callback)
     return
   end
 
+  -- Inject buffer signals for $signal completions
+  if detected.kind == "VALUE" and vim and vim.api then
+    local buf_lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+    detected.signals = completion.scan_signals(buf_lines)
+  end
+
   local items = completion.resolve(detected)
   callback({ items = items, isIncomplete = false })
 end

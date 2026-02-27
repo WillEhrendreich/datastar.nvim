@@ -1,6 +1,6 @@
 # Completion Engine Integrations
 
-datastar-lsp.nvim works with three completion engines. The built-in omnifunc requires zero configuration. For nvim-cmp or blink.cmp, add one line to your config.
+datastar.nvim works with three completion engines. The built-in omnifunc requires zero configuration. For nvim-cmp or blink.cmp, add one line to your config.
 
 ## Built-in Omnifunc (zero config)
 

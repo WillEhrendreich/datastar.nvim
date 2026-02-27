@@ -1,6 +1,6 @@
 # Completions
 
-datastar-lsp.nvim provides context-aware completions that understand exactly where your cursor is in a Datastar attribute.
+datastar.nvim provides context-aware completions that understand exactly where your cursor is in a Datastar attribute.
 
 ## The Datastar Attribute Syntax
 

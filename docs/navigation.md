@@ -1,6 +1,6 @@
 # Navigation
 
-datastar-lsp.nvim provides signal-aware navigation: jump to where signals are defined and visualize how they depend on each other.
+datastar.nvim provides signal-aware navigation: jump to where signals are defined and visualize how they depend on each other.
 
 ## Goto Definition (`gd`)
 

@@ -1,6 +1,6 @@
 # Diagnostics
 
-datastar-lsp.nvim checks your Datastar attributes for common mistakes and shows inline warnings as you type.
+datastar.nvim checks your Datastar attributes for common mistakes and shows inline warnings as you type.
 
 ## How It Works
 

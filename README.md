@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🌟 datastar-lsp.nvim
+# 🌟 datastar.nvim
 
 **IDE-quality [Datastar](https://data-star.dev) support for Neovim**
 
@@ -63,7 +63,7 @@ Run `:DatastarSignalGraph` to visualize how computed signals depend on each othe
 
 ```lua
 {
-  "WillEhrendreich/datastar-lsp.nvim",
+  "WillEhrendreich/datastar.nvim",
   ft = "html",
   opts = {},
 }
@@ -73,7 +73,7 @@ Run `:DatastarSignalGraph` to visualize how computed signals depend on each othe
 
 ```lua
 use {
-  "WillEhrendreich/datastar-lsp.nvim",
+  "WillEhrendreich/datastar.nvim",
   config = function()
     require("datastar").setup()
   end,

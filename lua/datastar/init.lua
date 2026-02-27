@@ -190,12 +190,24 @@ function M.setup(opts)
     })
   end
 
-  -- Register hover keymap
+  -- Register hover keymap — intercept K on data-* attributes, else fall through
   if opts.hover then
     vim.api.nvim_create_autocmd("FileType", {
       pattern = ft_list,
       group = vim.api.nvim_create_augroup("DatastarHover", { clear = true }),
       callback = function()
+        local prev_K = vim.fn.maparg("K", "n", false, true)
+        vim.keymap.set("n", "K", function()
+          local line = vim.api.nvim_get_current_line()
+          local col = vim.api.nvim_win_get_cursor(0)[2]
+          if completion.find_plugin_at_cursor(line, col) then
+            M.hover()
+          elseif prev_K and prev_K.callback then
+            prev_K.callback()
+          else
+            vim.cmd("normal! K")
+          end
+        end, { buffer = true, desc = "Datastar hover docs / fallback" })
         vim.keymap.set("n", "<leader>dh", M.hover, {
           buffer = true,
           desc = "Datastar hover docs",

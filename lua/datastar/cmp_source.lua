@@ -2,6 +2,7 @@
 -- Provides a cmp-compatible source that delegates to datastar.completion
 
 local completion = require("datastar.completion")
+local data = require("datastar.data")
 
 local source = {}
 source.__index = source
@@ -14,8 +15,13 @@ function source:get_debug_name()
   return "datastar"
 end
 
-function source:is_available()
-  return true
+function source:is_available(filetype)
+  local ft = filetype
+  if not ft and vim and vim.bo then
+    ft = vim.bo.filetype
+  end
+  if not ft then return false end
+  return data.filetypes_set[ft] or false
 end
 
 function source:get_trigger_characters()

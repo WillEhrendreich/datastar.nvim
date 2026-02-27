@@ -442,6 +442,7 @@ M.actions = {
     description = "Sends a GET request to the backend using the Fetch API.",
     doc_url = "https://data-star.dev/reference/actions#get",
     snippet = "@get('${1:/endpoint}')",
+    is_fetch = true,
   },
   {
     name = "@post",
@@ -449,6 +450,7 @@ M.actions = {
     description = "Sends a POST request to the backend using the Fetch API.",
     doc_url = "https://data-star.dev/reference/actions#post",
     snippet = "@post('${1:/endpoint}')",
+    is_fetch = true,
   },
   {
     name = "@put",
@@ -456,6 +458,7 @@ M.actions = {
     description = "Sends a PUT request to the backend using the Fetch API.",
     doc_url = "https://data-star.dev/reference/actions#put",
     snippet = "@put('${1:/endpoint}')",
+    is_fetch = true,
   },
   {
     name = "@patch",
@@ -463,6 +466,7 @@ M.actions = {
     description = "Sends a PATCH request to the backend using the Fetch API.",
     doc_url = "https://data-star.dev/reference/actions#patch",
     snippet = "@patch('${1:/endpoint}')",
+    is_fetch = true,
   },
   {
     name = "@delete",
@@ -470,6 +474,7 @@ M.actions = {
     description = "Sends a DELETE request to the backend using the Fetch API.",
     doc_url = "https://data-star.dev/reference/actions#delete",
     snippet = "@delete('${1:/endpoint}')",
+    is_fetch = true,
   },
   {
     name = "@peek",
@@ -573,6 +578,12 @@ M.filetypes = {
   "liquid", "pug", "razor", "gohtml", "jsp", "edge", "nunjucks",
   "gohtmltmpl", "htmlangular",
 }
+
+-- O(1) set for filetype checking
+M.filetypes_set = {}
+for _, ft in ipairs(M.filetypes) do
+  M.filetypes_set[ft] = true
+end
 
 -- Helper: get all plugin names as a sorted list
 function M.plugin_names()

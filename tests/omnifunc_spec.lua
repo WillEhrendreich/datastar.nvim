@@ -69,9 +69,14 @@ describe("datastar.cmp_source", function()
     assert.are_equal("datastar", src:get_debug_name())
   end)
 
-  it("is available returns true", function()
+  it("is available for html filetype", function()
     local src = cmp_source.new()
-    assert.is_true(src:is_available())
+    assert.is_true(src:is_available("html"))
+  end)
+
+  it("is not available without filetype", function()
+    local src = cmp_source.new()
+    assert.is_false(src:is_available())
   end)
 
   it("has trigger characters", function()

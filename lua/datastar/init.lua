@@ -5,7 +5,6 @@ local completion = require("datastar.completion")
 local data = require("datastar.data")
 
 local M = {}
-M._configured = false
 
 local defaults = {
   filetypes = nil, -- nil = use data.filetypes
@@ -27,7 +26,6 @@ function M.omnifunc(findstart, base)
     if ctx.kind == "ATTRIBUTE_NAME" then
       return col - #(ctx.partial or "")  - #"data-"
     elseif ctx.kind == "KEY" then
-      -- Start after the colon
       return col - #(ctx.partial or "")
     elseif ctx.kind == "MODIFIER" then
       return col - #(ctx.partial or "")
@@ -40,7 +38,7 @@ function M.omnifunc(findstart, base)
   else
     local line = vim.api.nvim_get_current_line()
     local col = vim.api.nvim_win_get_cursor(0)[2]
-    return completion.omnifunc_items(line, col)
+    return completion.omnifunc_items(line, col, base)
   end
 end
 
@@ -49,13 +47,10 @@ function M.hover()
   local line = vim.api.nvim_get_current_line()
   local col = vim.api.nvim_win_get_cursor(0)[2]
 
-  -- Extract the attribute name under/before cursor
-  local before = line:sub(1, col + 1)
-  local attr_name = before:match("data%-([%w%-]+)")
-  if not attr_name then return end
+  -- Find the data- attribute whose span contains the cursor
+  local plugin_name = completion.find_plugin_at_cursor(line, col)
+  if not plugin_name then return end
 
-  -- Strip key/modifier suffixes to get base plugin name
-  local plugin_name = attr_name:match("^([%w%-]+)")
   local plugin = data.plugins[plugin_name]
   if not plugin then return end
 
@@ -89,9 +84,6 @@ end
 --- Setup the plugin
 --- @param opts table|nil configuration options
 function M.setup(opts)
-  if M._configured then return end
-  M._configured = true
-
   opts = vim.tbl_deep_extend("force", defaults, opts or {})
   local ft_list = opts.filetypes or data.filetypes
 
@@ -127,12 +119,8 @@ function M.setup(opts)
     cmp.register_source("datastar", cmp_source.new())
   end
 
-  -- Register blink.cmp source if available
-  local ok_blink, blink = pcall(require, "blink.cmp")
-  if ok_blink and blink.register_source then
-    local cmp_source = require("datastar.cmp_source")
-    blink.register_source("datastar", cmp_source.new())
-  end
+  -- blink.cmp uses a provider-based config; no runtime registration needed.
+  -- Users add the source to their blink.cmp provider config. See README.
 end
 
 return M

@@ -32,11 +32,11 @@ Sleep 4s
 Escape
 Sleep 1s
 
-# Hover on data-signals
+# Hover on data-signals (line starts with <div so need 2fd to skip div's d)
 Type ":11"
 Enter
 Sleep 500ms
-Type "fd"
+Type "2fd"
 Sleep 500ms
 
 Type "K"
@@ -45,11 +45,11 @@ Sleep 4s
 Escape
 Sleep 1s
 
-# Hover on data-computed
+# Hover on data-computed (also <div)
 Type ":17"
 Enter
 Sleep 500ms
-Type "fd"
+Type "2fd"
 Sleep 500ms
 
 Type "K"

@@ -1,42 +1,63 @@
 # Datastar Goto Definition Demo
 Output demo/goto-definition.gif
 Set Shell bash
-Set FontSize 16
-Set Width 900
-Set Height 500
-Set Padding 10
-Set Theme "Kanagawa"
+Set FontSize 15
+Set Width 1000
+Set Height 550
+Set Padding 20
+Set TypingSpeed 50ms
+Set Theme "Catppuccin Mocha"
+Set WindowBar Colorful
+Set CursorBlink false
+Set LoopOffset 40%
 
+# Open the file silently
+Hide
 Type "nvim -u demo/tapes/init.lua test-drive.html"
 Enter
-Sleep 2s
+Sleep 3s
+Show
 
-# Go to $userName usage
+# Go to $userName usage in data-text
 Type ":21"
 Enter
-Sleep 500ms
+Sleep 800ms
 
 # Position on $userName
 Type "f$"
-Sleep 500ms
+Sleep 800ms
 
-# Press gd for goto definition
+# Press gd — jumps to the data-signals definition
 Type "gd"
-Sleep 2s
+Sleep 2.5s
 
-# Show we jumped to the definition at line 11
-Sleep 1s
-
-# Go back and try another signal
+# Jump back
 Ctrl+o
-Sleep 1s
+Sleep 1.5s
 
-# Go to $fullName
+# Now try $fullName (computed signal)
 Type ":22"
 Enter
-Sleep 500ms
+Sleep 800ms
+
 Type "f$"
-Sleep 500ms
+Sleep 800ms
+
+# Jump to the computed signal definition
+Type "gd"
+Sleep 2.5s
+
+# Jump back
+Ctrl+o
+Sleep 1.5s
+
+# Try $count
+Type ":31"
+Enter
+Sleep 800ms
+
+Type "f$"
+Sleep 800ms
 
 Type "gd"
-Sleep 2s
+Sleep 2.5s

@@ -1,34 +1,81 @@
 # Datastar Event Type Narrowing Demo
 Output demo/event-narrowing.gif
 Set Shell bash
-Set FontSize 16
-Set Width 900
-Set Height 500
-Set Padding 10
-Set Theme "Kanagawa"
+Set FontSize 15
+Set Width 1000
+Set Height 550
+Set Padding 20
+Set TypingSpeed 50ms
+Set Theme "Catppuccin Mocha"
+Set WindowBar Colorful
+Set CursorBlink false
+Set LoopOffset 40%
 
+# Open the file silently and navigate to the click handler
+Hide
 Type "nvim -u demo/tapes/init.lua test-drive.html"
 Enter
-Sleep 2s
+Sleep 3s
+Type ":31"
+Enter
+Sleep 500ms
+Show
 
-# Go to the data-on:keydown line
+# Change the click handler's expression to evt. to show MouseEvent completions
+# Position inside the value: f" to jump to opening quote, then ci" to change inner
+Type `f"`
+Sleep 500ms
+Type `ci"`
+Sleep 300ms
+Type@50ms "evt."
+Sleep 1.5s
+
+# Trigger completion — MouseEvent properties (clientX, clientY, button, etc.)
+Ctrl+x
+Sleep 200ms
+Ctrl+o
+Sleep 2.5s
+
+# Browse MouseEvent properties
+Down
+Sleep 500ms
+Down
+Sleep 500ms
+Down
+Sleep 500ms
+Down
+Sleep 500ms
+
+Escape
+Sleep 300ms
+
+# Undo back to original
+Escape
+Sleep 300ms
+Type "u"
+Sleep 800ms
+
+# Now do the same on the keydown handler (line 33)
 Type ":33"
 Enter
 Sleep 500ms
 
-# Go to end of line, open new line below with a similar handler
-Type "o"
+Type `f"`
+Sleep 500ms
+Type `ci"`
 Sleep 300ms
-Type "  <div data-on:click=\"evt."
-Sleep 1s
+Type@50ms "evt."
+Sleep 1.5s
 
-# Trigger completion for MouseEvent properties
+# Trigger completion — KeyboardEvent properties (key, code, ctrlKey, etc.)
 Ctrl+x
 Sleep 200ms
 Ctrl+o
-Sleep 2s
+Sleep 2.5s
 
-# Scroll through items
+# Browse KeyboardEvent properties
+Down
+Sleep 500ms
 Down
 Sleep 500ms
 Down
@@ -37,26 +84,8 @@ Down
 Sleep 500ms
 
 Escape
-Sleep 1s
-
-# Now show keydown narrowing
-Type "cc"
 Sleep 300ms
-Type "  <div data-on:keydown=\"evt."
-Sleep 1s
-
-Ctrl+x
-Sleep 200ms
-Ctrl+o
-Sleep 2s
-
-# Scroll through KeyboardEvent items
-Down
-Sleep 500ms
-Down
-Sleep 500ms
-Down
-Sleep 500ms
-
 Escape
+Sleep 300ms
+Type "u"
 Sleep 2s

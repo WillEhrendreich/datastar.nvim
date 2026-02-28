@@ -18,11 +18,11 @@ Enter
 Sleep 3s
 Show
 
-# Go to data-on:click line and hover
+# Go to data-on:click line and position cursor on data-on
 Type ":31"
 Enter
 Sleep 500ms
-Type "0w"
+Type "fd"
 Sleep 500ms
 
 # Press K for hover docs
@@ -36,7 +36,7 @@ Sleep 1s
 Type ":11"
 Enter
 Sleep 500ms
-Type "0w"
+Type "fd"
 Sleep 500ms
 
 Type "K"
@@ -46,10 +46,10 @@ Escape
 Sleep 1s
 
 # Hover on data-computed
-Type ":19"
+Type ":17"
 Enter
 Sleep 500ms
-Type "0w"
+Type "fd"
 Sleep 500ms
 
 Type "K"

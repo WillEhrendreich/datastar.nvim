@@ -20,13 +20,13 @@ Type ":31"
 Enter
 Sleep 500ms
 Show
+Sleep 500ms
 
-# Change the click handler's expression to evt. to show MouseEvent completions
-# Position inside the value: f" to jump to opening quote, then ci" to change inner
+# Change the click handler's value to evt. to trigger MouseEvent completions
 Type `f"`
 Sleep 500ms
 Type `ci"`
-Sleep 300ms
+Sleep 500ms
 Type@50ms "evt."
 Sleep 1.5s
 
@@ -46,16 +46,15 @@ Sleep 500ms
 Down
 Sleep 500ms
 
+# Dismiss completion and undo
 Escape
-Sleep 300ms
-
-# Undo back to original
+Sleep 500ms
 Escape
-Sleep 300ms
+Sleep 500ms
 Type "u"
-Sleep 800ms
+Sleep 1s
 
-# Now do the same on the keydown handler (line 33)
+# Now do keydown handler (line 33) for KeyboardEvent completions
 Type ":33"
 Enter
 Sleep 500ms
@@ -63,7 +62,7 @@ Sleep 500ms
 Type `f"`
 Sleep 500ms
 Type `ci"`
-Sleep 300ms
+Sleep 500ms
 Type@50ms "evt."
 Sleep 1.5s
 
@@ -83,9 +82,10 @@ Sleep 500ms
 Down
 Sleep 500ms
 
+# Dismiss and undo
 Escape
-Sleep 300ms
+Sleep 500ms
 Escape
-Sleep 300ms
+Sleep 500ms
 Type "u"
 Sleep 2s

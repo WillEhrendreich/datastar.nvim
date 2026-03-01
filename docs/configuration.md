@@ -15,7 +15,7 @@ require("datastar").setup({
   -- Enable/disable goto definition for $signals (gd key)
   goto_definition = true,
 
-  -- Filetypes to activate on (default: HTML only)
+  -- Filetypes to activate on; add "templ" if using Templ
   filetypes = { "html" },
 
   -- Minimum Datastar version to support

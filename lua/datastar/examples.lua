@@ -119,7 +119,7 @@ function M.format_hover_examples(plugin_name)
 
   local parts = { "**Examples:**" }
   for i, ex in ipairs(exs) do
-    parts[#parts + 1] = string.format("%d. %s\n   %s", i, ex.title, ex.code:gsub("\n", "\n   "))
+    parts[#parts + 1] = string.format("%d. %s\n```html\n%s\n```", i, ex.title, ex.code)
   end
   return table.concat(parts, "\n")
 end

@@ -72,6 +72,40 @@ function M.scan_file_for_signals(content, filepath)
         end
       end
     end
+    -- Templ.Attributes: "data-signals": "{key: val}" — double-quoted Go string value
+    local ta_merged = line:match('"data%-signals"%s*:%s*"[^{]*{(.-)}')
+    -- Templ.Attributes: "data-signals": `{"key": val}` — backtick Go string value
+    if not ta_merged then ta_merged = line:match('"data%-signals"%s*:%s*`[^{]*{(.-)}') end
+    if ta_merged then
+      for key in ta_merged:gmatch('"?([%w_]+)"?%s*:') do
+        if not seen[key] then
+          seen[key] = true
+          signals[#signals + 1] = {
+            name = key,
+            file = filepath,
+            lnum = lnum,
+            col = 0,
+            kind = "definition",
+          }
+        end
+      end
+    end
+    -- data-signals={expr} — Go expression: extract "key": patterns (handles fmt.Sprintf templates)
+    local go_expr = line:match('data%-signals%s*=%s*{(.+)}')
+    if go_expr then
+      for key in go_expr:gmatch('"([%w_]+)"%s*:') do
+        if not seen[key] then
+          seen[key] = true
+          signals[#signals + 1] = {
+            name = key,
+            file = filepath,
+            lnum = lnum,
+            col = 0,
+            kind = "definition",
+          }
+        end
+      end
+    end
 
     -- $signalName references in attribute values
     for sig in line:gmatch("%$([%w_]+)") do

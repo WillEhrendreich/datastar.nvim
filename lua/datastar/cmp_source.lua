@@ -25,20 +25,18 @@ function source:is_available(filetype)
 end
 
 function source:get_trigger_characters()
-  return { "-", ":", "_", ".", "@", "$", "=", '"', "'" }
+  return { "-", ":", "_", ".", "@", "$", "=", '"', "'", "`" }
 end
 
---- Complete callback for nvim-cmp / blink.cmp
---- @param params table cmp request params
---- @param callback function callback(items)
-function source:complete(params, callback)
-  local ctx = params.context or {}
-  local line = ctx.cursor_before_line or ""
+--- Shared completion logic used by both nvim-cmp and blink.cmp
+--- @param line string text before the cursor
+--- @param callback function
+local function do_complete(line, callback)
   local col = #line
 
   local detected = completion.detect_context(line, col)
   if not detected then
-    callback({ items = {}, isIncomplete = false })
+    callback({ items = {}, isIncomplete = false, is_incomplete_forward = false, is_incomplete_backward = false })
     return
   end
 
@@ -49,7 +47,23 @@ function source:complete(params, callback)
   end
 
   local items = completion.resolve(detected)
-  callback({ items = items, isIncomplete = false })
+  callback({ items = items, isIncomplete = false, is_incomplete_forward = false, is_incomplete_backward = false })
+end
+
+--- nvim-cmp: complete(params, callback) — params.context.cursor_before_line
+function source:complete(params, callback)
+  local ctx = params.context or params
+  local line = ctx.cursor_before_line or ""
+  do_complete(line, callback)
+end
+
+--- blink.cmp: get_completions(ctx, callback)
+--- blink.cmp context has ctx.line (full line) + ctx.cursor[2] (0-based col), not cursor_before_line
+function source:get_completions(ctx, callback)
+  local line = ctx.cursor_before_line
+    or (ctx.line and ctx.cursor and ctx.line:sub(1, ctx.cursor[2]))
+    or ""
+  do_complete(line, callback)
 end
 
 return source

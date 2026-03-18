@@ -64,7 +64,7 @@ Run `:DatastarSignalGraph` to visualize how computed signals depend on each othe
 ```lua
 {
   "WillEhrendreich/datastar.nvim",
-  ft = "html",
+  ft = { "html" }, -- add "templ" if using the Templ Go templating language: ft = { "html", "templ" }
   opts = {},
 }
 ```
@@ -77,7 +77,7 @@ use {
   config = function()
     require("datastar").setup()
   end,
-  ft = "html",
+  ft = { "html" }, -- add "templ" if using the Templ Go templating language: ft = { "html", "templ" }
 }
 ```
 
@@ -168,7 +168,7 @@ require("datastar").setup({
   diagnostics = true,       -- inline error/warning diagnostics
   hover = true,             -- K for hover docs
   goto_definition = true,   -- gd for signal navigation
-  filetypes = { "html" },   -- activate for these filetypes
+  filetypes = { "html" },   -- activate for these filetypes; add "templ" if using Templ
   version = nil,            -- filter features by Datastar version
 })
 ```

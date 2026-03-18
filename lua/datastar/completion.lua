@@ -89,6 +89,32 @@ function M.detect_context(line, col)
     end
   end
 
+  -- Templ.Attributes map syntax: "data-PLUGIN[:KEY]": "partial or `partial
+  -- Handles both keyed ("data-on:click": "...") and plain ("data-show": "...") forms,
+  -- with either double-quoted or backtick-quoted Go string values.
+  do
+    local ta_plugin, ta_key, ta_val
+    -- Double-quoted: "data-PLUGIN[:KEY]": "partial
+    ta_plugin, ta_key, ta_val = text:match('"data%-([%w%-]+):([%w%-]*)"[%s]*:[%s]*"([^"]*)$')
+    if not ta_plugin then
+      ta_plugin, ta_val = text:match('"data%-([%w%-]+)"[%s]*:[%s]*"([^"]*)$')
+      ta_key = nil
+    end
+    -- Backtick-quoted: "data-PLUGIN[:KEY]": `partial
+    if not ta_plugin then
+      ta_plugin, ta_key, ta_val = text:match('"data%-([%w%-]+):([%w%-]*)"[%s]*:[%s]*`([^`]*)$')
+    end
+    if not ta_plugin then
+      ta_plugin, ta_val = text:match('"data%-([%w%-]+)"[%s]*:[%s]*`([^`]*)$')
+      ta_key = nil
+    end
+    if ta_plugin then
+      local result = { kind = "VALUE", plugin = ta_plugin, partial = ta_val or "" }
+      if ta_key and ta_key ~= "" then result.event_key = ta_key end
+      return result
+    end
+  end
+
   -- Check for modifier arg: data-PLUGIN[:KEY]__MODIFIER.ARG_PARTIAL
   local ma_plugin, ma_modifier, ma_partial = text:match("data%-([%w%-]+)[^%s]*__([%w%-]+)%.([%w]*)$")
   if ma_plugin then
@@ -124,10 +150,14 @@ function M.detect_context(line, col)
   -- Check for attribute name: data-PARTIAL
   local attr_partial = text:match("data%-([%w%-]*)$")
   if attr_partial ~= nil then
-    return {
-      kind = "ATTRIBUTE_NAME",
-      partial = attr_partial,
-    }
+    local ctx_result = { kind = "ATTRIBUTE_NAME", partial = attr_partial }
+    -- Detect templ.Attributes Go map context: char immediately before "data-" is a quote
+    local data_start = text:find("data%-[%w%-]*$")
+    if data_start and data_start > 1 then
+      local pre = text:sub(data_start - 1, data_start - 1)
+      if pre == '"' or pre == "'" then ctx_result.in_templ_map = true end
+    end
+    return ctx_result
   end
 
   return nil
@@ -153,6 +183,19 @@ function M.resolve(ctx)
   end
 
   return {}
+end
+
+--- Convert an HTML attribute snippet body to templ.Attributes Go map format.
+--- data-on:${1:event}="${2:expr}"  →  "data-on:${1:event}": "${2:expr}"
+--- data-ignore                     →  "data-ignore": ""
+--- @param body string snippet body in HTML attribute format
+--- @return string snippet body in templ.Attributes format
+local function snippet_to_templ(body)
+  local eq_pos = body:find("=", 1, true)
+  if not eq_pos then
+    return '"' .. body .. '": ""'
+  end
+  return '"' .. body:sub(1, eq_pos - 1) .. '": ' .. body:sub(eq_pos + 1)
 end
 
 --- @private
@@ -183,16 +226,25 @@ function M._resolve_attribute_name(ctx)
         label = label,
         kind = Kind.Property,
         detail = plugin.description,
-        filterText = name,
+        filterText = label,
         sortText = label,
         documentation = {
           kind = "markdown",
           value = plugin.description .. "\n\n[Documentation](" .. plugin.doc_url .. ")",
         },
       }
-      -- Wire snippet body if available
+      -- Wire snippet body (convert to templ.Attributes format when in a Go map literal)
       local snippet = snippet_map[label]
-      if snippet then
+      if ctx.in_templ_map then
+        local body = snippet and snippet.body or (
+          plugin.has_key
+            and (label .. ':${1:key}="${2:expression}"')
+            or  (label .. '="${1:expression}"')
+        )
+        item.insertText = snippet_to_templ(body)
+        item.insertTextFormat = 2
+        item.kind = Kind.Snippet
+      elseif snippet then
         item.insertText = snippet.body
         item.insertTextFormat = 2 -- Snippet
         item.kind = Kind.Snippet
@@ -431,6 +483,39 @@ function M.scan_signals_with_locations(lines)
         end
       end
     end
+    -- Templ.Attributes: "data-signals": "{key: val}" — double-quoted Go string value
+    local ta_obj = line:match('"data%-signals"%s*:%s*"[^{]*{(.-)}')
+    -- Templ.Attributes: "data-signals": `{"key": val}` — backtick Go string value
+    if not ta_obj then ta_obj = line:match('"data%-signals"%s*:%s*`[^{]*{(.-)}') end
+    if ta_obj then
+      local obj_start = line:find('"data%-signals"')
+      for key in ta_obj:gmatch('"?([%w_]+)"?%s*:') do
+        if not seen[key] then
+          seen[key] = true
+          signals[#signals + 1] = {
+            name = key,
+            lnum = lnum,
+            col = (obj_start or 1) - 1,
+          }
+        end
+      end
+    end
+    -- data-signals={expr} — Go expression value: extract "key": patterns from fmt.Sprintf
+    -- templates, backtick literals, etc. Works even with dynamic values like fmt.Sprintf(`{"k":%q}`, v)
+    local go_expr = line:match('data%-signals%s*=%s*{(.+)}')
+    if go_expr then
+      local obj_start = line:find('data%-signals')
+      for key in go_expr:gmatch('"([%w_]+)"%s*:') do
+        if not seen[key] then
+          seen[key] = true
+          signals[#signals + 1] = {
+            name = key,
+            lnum = lnum,
+            col = (obj_start or 1) - 1,
+          }
+        end
+      end
+    end
   end
 
   table.sort(signals, function(a, b) return a.name < b.name end)
@@ -475,7 +560,13 @@ function M.find_plugin_at_cursor(line, col)
     if not attr_end then attr_end = #line + 1 end
     -- col is 0-based, s is 1-based, so convert: col+1 for 1-based comparison
     local cursor_1 = col + 1
-    if cursor_1 >= s and cursor_1 < attr_end then
+    -- Extend span to include a leading quote (templ.Attributes: "data-on:click": ...)
+    local span_start = s
+    if s > 1 then
+      local pre = line:sub(s - 1, s - 1)
+      if pre == '"' or pre == "'" then span_start = s - 1 end
+    end
+    if cursor_1 >= span_start and cursor_1 < attr_end then
       best_plugin = pname:match("^([%w%-]+)")
     end
     pos = e + 1

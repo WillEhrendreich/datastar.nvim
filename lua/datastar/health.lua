@@ -50,6 +50,23 @@ function M.check()
     vim.health.info("setup() not yet called — add require('datastar').setup() to your config")
   end
 
+  -- Check templ support
+  local has_templ_parser = pcall(vim.treesitter.language.require_language, "templ", nil, true)
+  if has_templ_parser then
+    vim.health.ok("templ tree-sitter parser installed")
+  else
+    vim.health.info("templ tree-sitter parser not installed — install with :TSInstall templ for templ.Attributes highlighting")
+  end
+  if ok_comp then
+    local templ_line = '"data-on'
+    local templ_ctx = comp.detect_context(templ_line, #templ_line)
+    if templ_ctx and templ_ctx.kind == "ATTRIBUTE_NAME" and templ_ctx.in_templ_map then
+      vim.health.ok("templ.Attributes context detection working")
+    else
+      vim.health.warn("templ.Attributes context detection returned unexpected result")
+    end
+  end
+
   -- Check completion engine integration
   local has_cmp = pcall(require, "cmp")
   local has_blink = pcall(require, "blink.cmp")

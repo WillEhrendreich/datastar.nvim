@@ -181,6 +181,39 @@ function M.setup(opts)
   opts = vim.tbl_deep_extend("force", defaults, opts or {})
   local ft_list = opts.filetypes or data.filetypes
 
+  -- Highlight "data-*" keys in templ.Attributes{} Go maps via extmarks.
+  -- Uses extmarks rather than tree-sitter queries because query.set strips the
+  -- `; inherits: go` directive, breaking Go syntax in templ files. The namespace
+  -- is created here (inside setup) to avoid module-level side effects at require time.
+  local templ_hl_ns = vim.api.nvim_create_namespace("datastar_templ_hl")
+  local function apply_templ_datastar_hl(buf)
+    vim.api.nvim_buf_clear_namespace(buf, templ_hl_ns, 0, -1)
+    local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+    for lnum, line in ipairs(lines) do
+      local s, e = line:find('"data%-[^"]*"')
+      while s do
+        vim.api.nvim_buf_set_extmark(buf, templ_hl_ns, lnum - 1, s - 1, {
+          end_col = e,
+          hl_group = "@tag.attribute",
+          priority = 110,
+        })
+        s, e = line:find('"data%-[^"]*"', e + 1)
+      end
+    end
+  end
+
+  vim.api.nvim_create_autocmd("FileType", {
+    pattern = "templ",
+    group = vim.api.nvim_create_augroup("DatastarTemplHl", { clear = true }),
+    callback = function(ev)
+      apply_templ_datastar_hl(ev.buf)
+      vim.api.nvim_create_autocmd({ "TextChanged", "InsertLeave", "BufEnter" }, {
+        buffer = ev.buf,
+        callback = function() apply_templ_datastar_hl(ev.buf) end,
+      })
+    end,
+  })
+
   -- Register omnifunc for target filetypes
   if opts.completion then
     vim.api.nvim_create_autocmd("FileType", {
@@ -192,28 +225,45 @@ function M.setup(opts)
     })
   end
 
-  -- Register hover keymap — intercept K on data-* attributes, else fall through
+  -- Register hover keymap — intercept K on data-* attributes, else fall through.
+  -- Uses both FileType (for initial setup) and LspAttach (to re-apply after LSP
+  -- overrides K, which LazyVim and many LSP configs do in their own LspAttach handler).
   if opts.hover then
+    local function setup_hover_keymap(buf)
+      vim.keymap.set("n", "K", function()
+        local line = vim.api.nvim_get_current_line()
+        local col = vim.api.nvim_win_get_cursor(0)[2]
+        if completion.find_plugin_at_cursor(line, col) then
+          M.hover()
+        else
+          vim.lsp.buf.hover()
+        end
+      end, { buffer = buf, desc = "Datastar hover docs / fallback" })
+    end
+
     vim.api.nvim_create_autocmd("FileType", {
       pattern = ft_list,
       group = vim.api.nvim_create_augroup("DatastarHover", { clear = true }),
-      callback = function()
-        local prev_K = vim.fn.maparg("K", "n", false, true)
-        vim.keymap.set("n", "K", function()
-          local line = vim.api.nvim_get_current_line()
-          local col = vim.api.nvim_win_get_cursor(0)[2]
-          if completion.find_plugin_at_cursor(line, col) then
-            M.hover()
-          elseif prev_K and prev_K.callback then
-            prev_K.callback()
-          else
-            vim.cmd("normal! K")
-          end
-        end, { buffer = true, desc = "Datastar hover docs / fallback" })
-        vim.keymap.set("n", "<leader>dh", M.hover, {
-          buffer = true,
-          desc = "Datastar hover docs",
-        })
+      callback = function(ev) setup_hover_keymap(ev.buf) end,
+    })
+
+    -- Re-apply on LspAttach and BufEnter so that LSP configs (LazyVim, etc.)
+    -- that override K after FileType don't permanently win.
+    local ft_set_hover = {}
+    for _, ft in ipairs(ft_list) do ft_set_hover[ft] = true end
+    vim.api.nvim_create_autocmd({ "LspAttach", "BufEnter" }, {
+      group = vim.api.nvim_create_augroup("DatastarHoverLsp", { clear = true }),
+      callback = function(ev)
+        if ft_set_hover[vim.bo[ev.buf].filetype] then
+          -- defer_fn(fn, 0) fires after ALL pending scheduled callbacks,
+          -- so we always run after LazyVim's deferred K setup.
+          local buf = ev.buf
+          vim.defer_fn(function()
+            if vim.api.nvim_buf_is_valid(buf) then
+              setup_hover_keymap(buf)
+            end
+          end, 0)
+        end
       end,
     })
   end
@@ -248,21 +298,41 @@ function M.setup(opts)
 
   -- Register goto definition keymap
   if opts.goto_definition then
+    local function setup_gotodef_keymap(buf)
+      vim.keymap.set("n", "gd", function()
+        -- Only intercept if cursor is on a $signal, else fall through
+        local line = vim.api.nvim_get_current_line()
+        local col = vim.api.nvim_win_get_cursor(0)[2]
+        if completion.find_signal_at_cursor(line, col) then
+          M.goto_definition()
+        else
+          -- Fall through to default gd
+          vim.cmd("normal! gd")
+        end
+      end, { buffer = buf, desc = "Datastar: go to signal definition" })
+    end
+
+    local ft_set_gd = {}
+    for _, ft in ipairs(ft_list) do ft_set_gd[ft] = true end
+
     vim.api.nvim_create_autocmd("FileType", {
       pattern = ft_list,
       group = vim.api.nvim_create_augroup("DatastarGotoDef", { clear = true }),
-      callback = function()
-        vim.keymap.set("n", "gd", function()
-          -- Only intercept if cursor is on a $signal, else fall through
-          local line = vim.api.nvim_get_current_line()
-          local col = vim.api.nvim_win_get_cursor(0)[2]
-          if completion.find_signal_at_cursor(line, col) then
-            M.goto_definition()
-          else
-            -- Fall through to default gd
-            vim.cmd("normal! gd")
-          end
-        end, { buffer = true, desc = "Datastar: go to signal definition" })
+      callback = function(ev) setup_gotodef_keymap(ev.buf) end,
+    })
+
+    -- Re-apply on LspAttach and BufEnter so FzfLua / LSP configs don't permanently win gd.
+    vim.api.nvim_create_autocmd({ "LspAttach", "BufEnter" }, {
+      group = vim.api.nvim_create_augroup("DatastarGotoDefLsp", { clear = true }),
+      callback = function(ev)
+        if ft_set_gd[vim.bo[ev.buf].filetype] then
+          local buf = ev.buf
+          vim.defer_fn(function()
+            if vim.api.nvim_buf_is_valid(buf) then
+              setup_gotodef_keymap(buf)
+            end
+          end, 0)
+        end
       end,
     })
   end
@@ -275,6 +345,60 @@ function M.setup(opts)
   end
 
   M._configured = true
+
+  -- Apply to buffers already loaded before setup() ran (lazy-loading via ft= option).
+  -- When a plugin is loaded on the FileType event, that event has already fired for
+  -- the current buffer, so the autocmds above would never trigger without this.
+  local ft_set = {}
+  for _, ft in ipairs(ft_list) do ft_set[ft] = true end
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_loaded(buf) and ft_set[vim.bo[buf].filetype] then
+      if opts.completion then
+        vim.bo[buf].omnifunc = "v:lua.require'datastar'.omnifunc"
+      end
+      if vim.bo[buf].filetype == "templ" then
+        apply_templ_datastar_hl(buf)
+        vim.api.nvim_create_autocmd({ "TextChanged", "InsertLeave", "BufEnter" }, {
+          buffer = buf,
+          callback = function() apply_templ_datastar_hl(buf) end,
+        })
+      end
+      if opts.diagnostics then
+        vim.api.nvim_create_autocmd({ "TextChanged", "InsertLeave", "BufEnter" }, {
+          buffer = buf,
+          callback = function() M.run_diagnostics() end,
+        })
+      end
+      -- nvim_buf_call runs the function in the context of buf without switching windows
+      vim.api.nvim_buf_call(buf, function()
+        if opts.diagnostics then
+          M.run_diagnostics()
+        end
+        if opts.hover then
+          vim.keymap.set("n", "K", function()
+            local line = vim.api.nvim_get_current_line()
+            local col = vim.api.nvim_win_get_cursor(0)[2]
+            if completion.find_plugin_at_cursor(line, col) then
+              M.hover()
+            else
+              vim.lsp.buf.hover()
+            end
+          end, { buffer = true, desc = "Datastar hover docs / fallback" })
+        end
+        if opts.goto_definition then
+          vim.keymap.set("n", "gd", function()
+            local line = vim.api.nvim_get_current_line()
+            local col = vim.api.nvim_win_get_cursor(0)[2]
+            if completion.find_signal_at_cursor(line, col) then
+              M.goto_definition()
+            else
+              vim.cmd("normal! gd")
+            end
+          end, { buffer = true, desc = "Datastar: go to signal definition" })
+        end
+      end)
+    end
+  end
 end
 
 return M

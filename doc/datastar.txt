@@ -1,0 +1,524 @@
+*datastar.txt*  IDE-quality Datastar support for Neovim
+
+==============================================================================
+CONTENTS                                                    *datastar-contents*
+
+  1. Introduction ................ |datastar-introduction|
+  2. Requirements ................ |datastar-requirements|
+  3. Installation ................ |datastar-installation|
+  4. Quick Start ................. |datastar-quickstart|
+  5. Features .................... |datastar-features|
+  6. Completions ................. |datastar-completions|
+  7. Diagnostics ................. |datastar-diagnostics|
+  8. Navigation .................. |datastar-navigation|
+  9. Configuration ............... |datastar-configuration|
+  10. Integrations ............... |datastar-integrations|
+  11. Health Check ............... |datastar-health|
+  12. Commands ................... |datastar-commands|
+  13. License .................... |datastar-license|
+
+==============================================================================
+1. INTRODUCTION                                         *datastar-introduction*
+
+datastar.nvim provides IDE-quality support for the Datastar hypermedia
+framework (https://data-star.dev) inside Neovim.
+
+Datastar brings reactivity to HTML using `data-*` attributes. Instead of
+writing JavaScript components, you declare behavior directly in markup: >
+
+    <div data-signals:count="0">
+      <button data-on:click="$count++">+1</button>
+      <span data-text="$count"></span>
+    </div>
+<
+This plugin gives you completions, hover documentation, diagnostics, and
+signal navigation for all 31 Datastar attributes — without an LSP server,
+Node.js, or any external process.
+
+  • Zero startup cost — no process to spawn
+  • Instant completions — no network round-trips
+  • Works offline — everything is bundled
+  • 275 tests with busted
+
+==============================================================================
+2. REQUIREMENTS                                         *datastar-requirements*
+
+  • Neovim ≥ 0.9 (0.10+ recommended)
+  • Treesitter HTML parser: `:TSInstall html`
+
+Optional (for automatic completions):
+  • nvim-cmp (https://github.com/hrsh7th/nvim-cmp)
+  • blink.cmp (https://github.com/Saghen/blink.cmp)
+
+==============================================================================
+3. INSTALLATION                                         *datastar-installation*
+
+With vim.pack (Neovim ≥ 0.12.0, built-in): >
+
+    -- in init.lua
+    vim.pack.add({
+      'https://github.com/WillEhrendreich/datastar.nvim',
+    })
+    require("datastar").setup()
+<
+`vim.pack` uses Git to clone the repository on first start and manages
+updates via |vim.pack.update()|. No external plugin manager is required.
+
+With lazy.nvim: >
+
+    {
+      "WillEhrendreich/datastar.nvim",
+      ft = "html",
+      opts = {},
+    }
+<
+With packer.nvim: >
+
+    use {
+      "WillEhrendreich/datastar.nvim",
+      config = function()
+        require("datastar").setup()
+      end,
+      ft = "html",
+    }
+<
+Manual installation: >
+
+    git clone https://github.com/WillEhrendreich/datastar.nvim \
+      ~/.local/share/nvim/site/pack/plugins/start/datastar.nvim
+<
+Then add to your `init.lua`: >
+
+    require("datastar").setup()
+<
+==============================================================================
+4. QUICK START                                            *datastar-quickstart*
+
+1. Open any `.html` file.
+2. Type `data-` inside an HTML tag.
+3. A completion menu appears with all Datastar attributes.
+4. Select one and keep typing — modifiers, keys, and values all complete
+   contextually.
+
+Press `K` over a `data-*` attribute to see hover documentation.
+Press `gd` on a `$signal` reference to jump to its definition.
+
+==============================================================================
+5. FEATURES                                                 *datastar-features*
+
+Smart Completions~
+  Context-aware completions for all 31 Datastar plugins. The plugin detects
+  which part of the attribute syntax you're editing and offers the right
+  completions. See |datastar-completions|.
+
+Rich Hover Documentation~
+  Press `K` on any `data-*` attribute to see descriptions, available
+  modifiers, and curated code examples.
+
+Real-Time Diagnostics~
+  Catch mistakes as you type — duplicate modifiers, conflicting options,
+  unclosed expressions, and more. See |datastar-diagnostics|.
+
+Event Type Narrowing~
+  Type `evt.` inside a `data-on` handler and get completions specific to that
+  event type. `keydown` shows `KeyboardEvent` properties, `click` shows
+  `MouseEvent` properties.
+
+Signal Goto Definition~
+  Press `gd` on any `$signal` reference to jump to where it was defined.
+  See |datastar-navigation|.
+
+Signal Dependency Graph~
+  Run |:DatastarSignalGraph| to visualize how computed signals depend on
+  each other.
+
+==============================================================================
+6. COMPLETIONS                                           *datastar-completions*
+
+The Datastar attribute syntax is: >
+
+    data-[plugin]:[key]__[modifier].[arg]="expression"
+<
+The plugin detects which part you are editing and offers appropriate
+completions for each context.
+
+------------------------------------------------------------------------------
+Context 1: Attribute Names~
+
+Trigger: Type `data-` inside an HTML tag.
+
+Completes all 31 Datastar plugin names, including:
+
+  data-signals        Define reactive signals
+  data-on             Event handlers
+  data-bind           Two-way input binding
+  data-text           Set text content
+  data-show           Toggle visibility
+  data-class          Toggle CSS classes
+  data-attr           Set HTML attributes
+  data-computed       Derived signals
+  data-ref            Element references
+  data-indicator      Loading indicators
+  (and 21 more)
+
+------------------------------------------------------------------------------
+Context 2: Keys~
+
+Trigger: Type `:` after a plugin name (e.g., `data-on:`).
+
+Completions depend on the plugin:
+  data-on:      → DOM events (click, submit, keydown, input, …)
+  data-class:   → common CSS class names
+  data-attr:    → HTML attribute names (disabled, href, src, …)
+  data-bind:    → value, checked, etc.
+
+In total the plugin covers 83 DOM events and 97 HTML attributes.
+
+------------------------------------------------------------------------------
+Context 3: Modifiers~
+
+Trigger: Type `__` after a key (e.g., `data-on:click__`).
+
+Modifiers are plugin-specific:
+  data-on:              __once, __passive, __capture, __debounce,
+                        __throttle, __delay, __prevent, __stop
+  data-signals:         __ifmissing
+  data-scroll-into-view: __smooth, __instant, __auto,
+                        __hstart, __hcenter, __hend, __hnearest,
+                        __vstart, __vcenter, __vend, __vnearest
+  data-persist:         __session, __local
+
+------------------------------------------------------------------------------
+Context 4: Modifier Arguments~
+
+Trigger: Type `.` after a modifier (e.g., `data-on:click__debounce.`).
+
+  __debounce.   → 500ms, 1s, 2s, leading
+  __throttle.   → 500ms, 1s, 2s, noleading, notrailing
+  __delay.      → 500ms, 1s, 2s, 5s
+
+------------------------------------------------------------------------------
+Context 5: Values (Expressions)~
+
+Trigger: Type inside `="..."` of a Datastar attribute.
+
+Signal References (`$`)~
+  Type `$` to see all signals defined in the current buffer: >
+
+      <div data-signals:userName="'Will'"></div>
+      <div data-signals:count="0"></div>
+
+      <!-- type $ to get $userName, $count -->
+      <span data-text="$">
+<
+Action Calls (`@`)~
+  Type `@` for Datastar backend actions: >
+
+      <button data-on:click="@get('/api')">
+      <!-- completes: @get, @post, @put, @patch, @delete -->
+<
+Event Properties (`evt.`)~
+  Inside `data-on` handlers, type `evt.` for event-specific properties.
+  This is event type narrowing — completions change based on the event: >
+
+      <input data-on:keydown="evt.">  <!-- key, code, altKey, ctrlKey, … -->
+      <div data-on:click="evt.">     <!-- clientX, clientY, button, … -->
+<
+------------------------------------------------------------------------------
+Triggering Completions~
+
+  omnifunc (built-in)   Press `<C-x><C-o>` in insert mode.
+  nvim-cmp              Completions appear automatically. See |datastar-integrations|.
+  blink.cmp             Completions appear automatically. See |datastar-integrations|.
+
+==============================================================================
+7. DIAGNOSTICS                                           *datastar-diagnostics*
+
+Diagnostics run automatically on `TextChanged` and `InsertLeave` events in
+HTML buffers. Errors appear as virtual text and in the Neovim diagnostics
+list (`:lua vim.diagnostic.setloclist()`).
+
+------------------------------------------------------------------------------
+What Is Detected~
+
+Duplicate Modifiers~
+  Using the same modifier twice on one attribute: >
+
+      <!-- Warning: Duplicate modifier: debounce -->
+      <div data-on:click__debounce.500ms__debounce.1s="@get('/api')"></div>
+<
+Conflicting Modifiers~
+  Using modifiers that contradict each other: >
+
+      <!-- Warning: Conflicting modifiers: smooth, instant -->
+      <div data-scroll-into-view__smooth__instant></div>
+<
+  Known conflict groups:
+    smooth ↔ instant ↔ auto         (scroll behavior)
+    hstart ↔ hcenter ↔ hend ↔ hnearest  (horizontal alignment)
+    vstart ↔ vcenter ↔ vend ↔ vnearest  (vertical alignment)
+
+Unknown Modifiers~
+  Using a modifier that does not exist for the plugin: >
+
+      <!-- Warning: Unknown modifier 'foo' for data-on -->
+      <div data-on:click__foo="$count++"></div>
+<
+Expression Syntax Errors~
+  Unclosed brackets, parentheses, or template literals: >
+
+      <!-- Error: Unclosed '(' — expected matching ')' -->
+      <div data-text="$name + (unclosed"></div>
+
+      <!-- Error: Unclosed '[' — expected matching ']' -->
+      <div data-text="$items[0"></div>
+<
+Empty Expressions~
+  Attributes that require a value but have none: >
+
+      <!-- Error: Empty expression for data-text -->
+      <div data-text=""></div>
+<
+------------------------------------------------------------------------------
+Diagnostic Severity~
+
+  Issue                   Severity
+  ─────────────────────── ────────
+  Empty expression        Error
+  Unclosed delimiter      Error
+  Unknown modifier        Warning
+  Duplicate modifier      Warning
+  Conflicting modifiers   Warning
+
+------------------------------------------------------------------------------
+Disabling Diagnostics~
+
+To disable diagnostics globally: >
+
+    require("datastar").setup({
+      diagnostics = false,
+    })
+<
+==============================================================================
+8. NAVIGATION                                             *datastar-navigation*
+
+------------------------------------------------------------------------------
+Goto Definition (`gd`)~                               *datastar-goto-definition*
+
+Place your cursor on a `$signal` reference and press `gd`. The cursor jumps
+to where that signal was defined. >
+
+    <!-- Line 5: definition -->
+    <div data-signals:userName="'Will'"></div>
+
+    <!-- Line 18: usage — press gd on $userName -->
+    <span data-text="$userName"></span>
+    <!-- cursor jumps to line 5 -->
+<
+Works for signals defined anywhere in the current buffer via:
+  data-signals:name="..."
+  data-computed:name="..."
+  data-bind:name
+  data-ref:name
+  data-indicator:name
+
+------------------------------------------------------------------------------
+Signal Dependency Graph~                            *datastar-dependency-graph*
+
+Run |:DatastarSignalGraph| to see a visualization of all signals and their
+dependencies in the current buffer: >
+
+    Signal Dependency Graph
+    ═══════════════════════
+
+    Computed signals:
+      fullName    ← firstName, lastName
+      doubleCount ← count
+      isAdult     ← age
+
+    Leaf signals (no dependencies):
+      age, count, firstName, isOpen, lastName, userName
+<
+Computed signals show what they depend on (with ← arrows). Leaf signals are
+standalone values with no dependencies.
+
+------------------------------------------------------------------------------
+Cross-File Signal Tracking~
+
+The workspace scanner tracks signals across all HTML files in your project.
+If `header.html` defines: >
+
+    <div data-signals:theme="'dark'"></div>
+<
+Then in `page.html`, typing `$` will include `$theme` in the completions —
+even though it is defined in a different file.
+
+------------------------------------------------------------------------------
+Keybindings~
+
+  Key                    Action
+  ────────────────────── ──────────────────────────────────
+  gd                     Goto signal definition
+  K                      Show hover documentation
+  :DatastarSignalGraph   Show signal dependency graph
+
+==============================================================================
+9. CONFIGURATION                                       *datastar-configuration*
+
+All options are passed to `require("datastar").setup()`. Every option has a
+sensible default — you can call `setup()` with no arguments. >
+
+    require("datastar").setup({
+      -- Enable/disable inline diagnostics
+      diagnostics = true,
+
+      -- Enable/disable hover documentation (K key)
+      hover = true,
+
+      -- Enable/disable goto definition for $signals (gd key)
+      goto_definition = true,
+
+      -- Filetypes to activate on (default: HTML only)
+      filetypes = { "html" },
+
+      -- Minimum Datastar version to support.
+      -- Filters out features added in later versions.
+      -- nil = no filtering (show everything)
+      version = nil,  -- e.g., "0.20.0"
+    })
+<
+------------------------------------------------------------------------------
+Option Details~
+
+`diagnostics` (default: `true`)~
+  When enabled, checks Datastar attributes for duplicate modifiers,
+  conflicting modifiers, unknown modifiers, expression syntax errors
+  (unclosed brackets), and empty expressions. Runs on `TextChanged` and
+  `InsertLeave`.
+
+`hover` (default: `true`)~
+  When enabled, pressing `K` over a `data-*` attribute shows the plugin
+  description, a link to official docs, available modifiers with descriptions,
+  and curated code examples.
+
+`goto_definition` (default: `true`)~
+  When enabled, pressing `gd` on a `$signalName` jumps to its definition
+  (`data-signals:name`, `data-computed:name`, etc.).
+
+`filetypes` (default: `{ "html" }`)~
+  List of filetypes where the plugin activates. Extend for template languages: >
+
+      filetypes = { "html", "htmldjango", "eruby", "templ" },
+<
+`version` (default: `nil`)~
+  Set this to filter completions to features available in a specific Datastar
+  version: >
+
+      version = "0.20.0",  -- only show features from v0.20.0 and earlier
+<
+  Useful when targeting a specific Datastar release.
+
+==============================================================================
+10. INTEGRATIONS                                       *datastar-integrations*
+
+datastar.nvim works with three completion engines.
+
+------------------------------------------------------------------------------
+Built-in Omnifunc (zero config)~
+
+Works out of the box. Press `<C-x><C-o>` in insert mode to trigger Datastar
+completions. The plugin automatically sets `omnifunc` for HTML buffers.
+
+------------------------------------------------------------------------------
+nvim-cmp~
+
+Add `"datastar"` to your nvim-cmp sources: >
+
+    local cmp = require("cmp")
+    cmp.setup({
+      sources = cmp.config.sources({
+        { name = "nvim_lsp" },
+        { name = "datastar" },
+        { name = "luasnip" },
+      }),
+    })
+<
+The plugin registers itself as an nvim-cmp source automatically during
+`setup()`.
+
+------------------------------------------------------------------------------
+blink.cmp~
+
+Add a provider in your blink.cmp config: >
+
+    {
+      "Saghen/blink.cmp",
+      opts = {
+        sources = {
+          default = { "lsp", "path", "snippets", "buffer", "datastar" },
+          providers = {
+            datastar = {
+              name = "datastar",
+              module = "datastar.cmp_source",
+              score_offset = 100,
+            },
+          },
+        },
+      },
+    }
+<
+------------------------------------------------------------------------------
+Completion Item Details~
+
+All completion items include:
+  • Label       — the completion text (e.g., `data-signals`, `__debounce`)
+  • Kind        — LSP-compatible kind (Snippet, Property, Event, etc.)
+  • Detail      — short description
+  • Documentation — full description with links to official docs
+  • Sort text   — items sorted by relevance, not alphabetically
+
+==============================================================================
+11. HEALTH CHECK                                            *datastar-health*
+
+Run |:checkhealth| to verify your installation: >
+
+    :checkhealth datastar
+<
+This checks:
+  • Neovim version compatibility
+  • Treesitter HTML parser
+  • Plugin configuration status
+  • Schema integrity (31 plugins loaded)
+  • Completion engine registration
+  • Diagnostics setup
+  • Keymap bindings
+
+Example output: >
+
+    datastar: health#datastar#check
+    ========================================
+    - OK Neovim version: 0.10.x
+    - OK Treesitter HTML parser installed
+    - OK Plugin configured successfully
+    - OK Datastar schema loaded: 31 plugins
+    - OK Completion engine: omnifunc registered
+<
+==============================================================================
+12. COMMANDS                                               *datastar-commands*
+
+                                                      *:DatastarSignalGraph*
+:DatastarSignalGraph
+  Display a visualization of all signals in the current buffer and their
+  dependencies. Shows which computed signals derive from which leaf signals.
+  See |datastar-dependency-graph|.
+
+==============================================================================
+13. LICENSE                                                 *datastar-license*
+
+MIT License. See the LICENSE file in the repository for full text.
+
+  Repository:  https://github.com/WillEhrendreich/datastar.nvim
+  Datastar:    https://data-star.dev
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:
